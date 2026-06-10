@@ -29,6 +29,24 @@ enum SiteStatus {
   PAUSED
 }
 
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole @default(EMPLOYEE)
+  employeeId   String?  @unique
+  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model Employee {
   id        String         @id @default(cuid())
   firstName String
@@ -37,11 +55,13 @@ model Employee {
   phone     String?
   email     String?
   status    EmployeeStatus @default(AVAILABLE)
+  sickUntil DateTime?
   skills    String?
   photoUrl  String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   assignments Assignment[]
+  user        User?
 }
 
 model Vehicle {

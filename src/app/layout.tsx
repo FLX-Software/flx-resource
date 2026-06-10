@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { Sidebar } from "@/components/layout/sidebar";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "FLX Resource – Fluck Holzbau",
@@ -13,13 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
-      <body>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-8">{children}</main>
-        </div>
-      </body>
+    <html lang="de" className={`${inter.variable} h-full`}>
+      <body className="h-full overflow-hidden antialiased">{children}</body>
     </html>
   );
 }

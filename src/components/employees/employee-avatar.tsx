@@ -1,3 +1,4 @@
+import { UploadedImage } from "@/components/shared/uploaded-image";
 import { cn, getInitials } from "@/lib/utils";
 
 interface EmployeeAvatarProps {
@@ -9,30 +10,28 @@ interface EmployeeAvatarProps {
 }
 
 const sizeClasses = {
-  sm: "h-8 w-8 text-xs",
-  md: "h-12 w-12 text-sm",
-  lg: "h-16 w-16 text-base",
+  sm: "h-8 w-8",
+  md: "h-12 w-12",
+  lg: "h-20 w-20",
 };
 
 export function EmployeeAvatar({
   firstName,
   lastName,
   photoUrl,
-  size = "md",
+  size = "lg",
   className,
 }: EmployeeAvatarProps) {
-  const sizeClass = sizeClasses[size];
+  const label = `${firstName} ${lastName}`;
 
   if (photoUrl) {
     return (
-      <img
+      <UploadedImage
         src={photoUrl}
-        alt={`${firstName} ${lastName}`}
-        className={cn(
-          "rounded-full object-cover",
-          sizeClass,
-          className
-        )}
+        alt={label}
+        size={size}
+        rounded="full"
+        className={className}
       />
     );
   }
@@ -40,8 +39,8 @@ export function EmployeeAvatar({
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-full bg-amber-100 font-bold text-amber-800",
-        sizeClass,
+        "flex shrink-0 items-center justify-center rounded-full bg-flx-blue/20 text-sm font-bold text-flx-blue-light",
+        sizeClasses[size],
         className
       )}
     >

@@ -1,10 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { addDays, startOfDay } from "date-fns";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
   await prisma.assignment.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.constructionSite.deleteMany();
@@ -207,7 +209,30 @@ async function main() {
     data: { status: "IN_USE" },
   });
 
+  await prisma.user.create({
+    data: {
+      email: "planer@fluck-holzbau.ch",
+      passwordHash: await bcrypt.hash("planer1234", 12),
+      firstName: "Marco",
+      lastName: "Fluck",
+      role: "ADMIN",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: "thomas.meier@fluck-holzbau.ch",
+      passwordHash: await bcrypt.hash("mitarbeiter1234", 12),
+      firstName: "Thomas",
+      lastName: "Meier",
+      role: "EMPLOYEE",
+      employeeId: employees[1].id,
+    },
+  });
+
   console.log("Demo-Daten erfolgreich erstellt.");
+  console.log("Planer: planer@fluck-holzbau.ch / planer1234");
+  console.log("Mitarbeiter: thomas.meier@fluck-holzbau.ch / mitarbeiter1234");
 }
 
 main()

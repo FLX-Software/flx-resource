@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import type { ConstructionSite } from "@prisma/client";
+import type { ConstructionSite, Vehicle } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -11,9 +11,10 @@ interface SitePickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sites: ConstructionSite[];
+  vehicles?: Vehicle[];
   title: string;
   description?: string;
-  onConfirm: (siteId: string) => void;
+  onConfirm: (siteId: string, vehicleId?: string | null) => void;
   isPending?: boolean;
 }
 
@@ -21,6 +22,7 @@ export function SitePickerDialog({
   open,
   onOpenChange,
   sites,
+  vehicles = [],
   title,
   description,
   onConfirm,
@@ -29,28 +31,30 @@ export function SitePickerDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[60] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-stone-200 bg-white p-6 shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[60] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-flx-border bg-flx-card p-6 shadow-2xl shadow-black/50">
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <Dialog.Title className="text-lg font-semibold text-stone-900">
+              <Dialog.Title className="text-lg font-semibold text-white">
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-1 text-sm text-stone-500">
+                <Dialog.Description className="mt-1 text-sm text-flx-muted">
                   {description}
                 </Dialog.Description>
               )}
             </div>
-            <Dialog.Close className="rounded-lg p-1 text-stone-400 hover:bg-stone-100">
+            <Dialog.Close className="rounded-lg p-1 text-flx-muted hover:bg-flx-elevated hover:text-white">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const siteId = new FormData(e.currentTarget).get("siteId") as string;
-              if (siteId) onConfirm(siteId);
+              const formData = new FormData(e.currentTarget);
+              const siteId = formData.get("siteId") as string;
+              const vehicleId = (formData.get("vehicleId") as string) || null;
+              if (siteId) onConfirm(siteId, vehicleId);
             }}
             className="space-y-4"
           >
@@ -67,6 +71,19 @@ export function SitePickerDialog({
                 ))}
               </Select>
             </div>
+            {vehicles.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="vehicleId">Fahrzeug (optional)</Label>
+                <Select id="vehicleId" name="vehicleId" defaultValue="">
+                  <option value="">Kein Fahrzeug</option>
+                  {vehicles.map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.name} ({vehicle.licensePlate})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 type="button"

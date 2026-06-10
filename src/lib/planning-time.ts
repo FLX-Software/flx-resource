@@ -57,7 +57,7 @@ export function normalizeRange(
   startMinutes: number,
   endMinutes: number
 ): { startMinutes: number; endMinutes: number } {
-  let start = snapMinutes(clampMinutes(startMinutes));
+  const start = snapMinutes(clampMinutes(startMinutes));
   let end = snapMinutes(clampMinutes(endMinutes));
 
   if (end - start < MIN_ASSIGNMENT_MINUTES) {

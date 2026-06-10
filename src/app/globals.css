@@ -1,15 +1,64 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --color-flx-bg: #0a0c14;
+  --color-flx-card: #121a2e;
+  --color-flx-elevated: #1a2540;
+  --color-flx-sidebar: #080b12;
+  --color-flx-blue: #0080ff;
+  --color-flx-blue-light: #4da3ff;
+  --color-flx-blue-dark: #0066cc;
+  --color-flx-border: #1e2d4a;
+  --color-flx-border-subtle: #162033;
+  --color-flx-muted: #8b9cb8;
+  --color-flx-muted-foreground: #64748b;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   font-family: var(--font-sans);
-  background: #fafaf9;
-  color: #1c1917;
+  background: var(--color-flx-bg);
+  color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* FLX primary button glow */
+.flx-btn-primary {
+  background: linear-gradient(135deg, #0066cc 0%, #0080ff 100%);
+  box-shadow: 0 0 20px rgba(0, 128, 255, 0.35);
+}
+
+.flx-btn-primary:hover {
+  background: linear-gradient(135deg, #005bb5 0%, #0073e6 100%);
+  box-shadow: 0 0 24px rgba(0, 128, 255, 0.45);
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-flx-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-flx-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3f66;
 }

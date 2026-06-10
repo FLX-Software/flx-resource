@@ -1,7 +1,14 @@
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { expireEndedSickLeaves } from "./employee-status";
 import { prisma } from "./prisma";
+import { getSession } from "./session";
 
 export async function getDashboardStats(date = new Date()) {
+  await expireEndedSickLeaves();
+  const session = await getSession();
+  const employeeId =
+    session?.role === "EMPLOYEE" ? session.employeeId : null;
+
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
 
@@ -18,12 +25,16 @@ export async function getDashboardStats(date = new Date()) {
     prisma.vehicle.count(),
     prisma.constructionSite.count({ where: { status: "ACTIVE" } }),
     prisma.assignment.findMany({
-      where: { date: { gte: dayStart, lte: dayEnd } },
+      where: {
+        date: { gte: dayStart, lte: dayEnd },
+        ...(employeeId ? { employeeId } : {}),
+      },
       include: {
         employee: true,
         vehicle: true,
         site: true,
       },
+      orderBy: { startMinutes: "asc" },
     }),
     prisma.employee.findMany({ orderBy: { lastName: "asc" } }),
     prisma.vehicle.findMany({ orderBy: { name: "asc" } }),
@@ -59,7 +70,12 @@ export async function getDashboardStats(date = new Date()) {
       ? ((totalVehicles - availableVehicles) / totalVehicles) * 100
       : 0;
 
+  const myEmployee = employeeId
+    ? employees.find((e) => e.id === employeeId) ?? null
+    : null;
+
   return {
+    isEmployeeView: Boolean(employeeId),
     totalEmployees,
     totalVehicles,
     activeSites,
@@ -68,13 +84,18 @@ export async function getDashboardStats(date = new Date()) {
     employeeUtilization,
     vehicleUtilization,
     todayAssignments,
-    employees,
+    employees: employeeId
+      ? employees.filter((e) => e.id === employeeId)
+      : employees,
     vehicles,
     upcomingSites: sites,
+    myEmployee,
   };
 }
 
 export async function getEmployees() {
+  await expireEndedSickLeaves();
+
   return prisma.employee.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     include: {
@@ -114,12 +135,18 @@ export async function getSites() {
   });
 }
 
-export async function getAssignmentsForWeek(date = new Date()) {
+export async function getAssignmentsForWeek(
+  date = new Date(),
+  employeeId?: string | null
+) {
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
 
   return prisma.assignment.findMany({
-    where: { date: { gte: weekStart, lte: weekEnd } },
+    where: {
+      date: { gte: weekStart, lte: weekEnd },
+      ...(employeeId ? { employeeId } : {}),
+    },
     include: {
       employee: true,
       vehicle: true,
@@ -135,6 +162,15 @@ export async function getPlanningEmployees() {
       status: { notIn: ["VACATION", "SICK", "UNAVAILABLE"] },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+}
+
+export async function getPlanningVehicles() {
+  return prisma.vehicle.findMany({
+    where: {
+      status: { notIn: ["MAINTENANCE", "UNAVAILABLE"] },
+    },
+    orderBy: { name: "asc" },
   });
 }
 

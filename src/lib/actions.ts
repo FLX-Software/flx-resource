@@ -19,6 +19,8 @@ import {
   rangesOverlap,
   timeToMinutes,
 } from "./planning-time";
+import { parseSickUntilDate } from "./employee-status";
+import { requireAdmin } from "./session";
 
 function revalidateAll() {
   revalidatePath("/");
@@ -31,6 +33,7 @@ function revalidateAll() {
 // --- Mitarbeiter ---
 
 export async function createEmployee(formData: FormData) {
+  await requireAdmin();
   const photo = formData.get("photo");
 
   const employee = await prisma.employee.create({
@@ -62,6 +65,7 @@ export async function createEmployee(formData: FormData) {
 }
 
 export async function updateEmployee(id: string, formData: FormData) {
+  await requireAdmin();
   const existing = await prisma.employee.findUnique({ where: { id } });
   if (!existing) return;
 
@@ -79,6 +83,8 @@ export async function updateEmployee(id: string, formData: FormData) {
     photoUrl = await saveEmployeePhoto(photo, id);
   }
 
+  const status = formData.get("status") as EmployeeStatus;
+
   await prisma.employee.update({
     where: { id },
     data: {
@@ -88,7 +94,8 @@ export async function updateEmployee(id: string, formData: FormData) {
       phone: (formData.get("phone") as string) || null,
       email: (formData.get("email") as string) || null,
       skills: (formData.get("skills") as string) || null,
-      status: formData.get("status") as EmployeeStatus,
+      status,
+      sickUntil: status === "SICK" ? existing.sickUntil : null,
       photoUrl,
     },
   });
@@ -96,6 +103,7 @@ export async function updateEmployee(id: string, formData: FormData) {
 }
 
 export async function deleteEmployee(id: string) {
+  await requireAdmin();
   const employee = await prisma.employee.findUnique({ where: { id } });
   if (employee?.photoUrl) {
     await deleteEmployeePhoto(employee.photoUrl);
@@ -104,9 +112,47 @@ export async function deleteEmployee(id: string) {
   revalidateAll();
 }
 
+export async function reportEmployeeSickLeave(employeeId: string, formData: FormData) {
+  await requireAdmin();
+  const sickUntilRaw = formData.get("sickUntil") as string;
+  if (!sickUntilRaw) {
+    throw new Error("Bitte ein Enddatum für die Krankmeldung angeben.");
+  }
+
+  const sickUntil = parseSickUntilDate(sickUntilRaw);
+  const todayStart = startOfDay(new Date());
+  if (sickUntil < todayStart) {
+    throw new Error("Das Enddatum darf nicht in der Vergangenheit liegen.");
+  }
+
+  await prisma.employee.update({
+    where: { id: employeeId },
+    data: {
+      status: "SICK",
+      sickUntil,
+    },
+  });
+
+  revalidateAll();
+}
+
+export async function endEmployeeSickLeave(employeeId: string) {
+  await requireAdmin();
+  await prisma.employee.update({
+    where: { id: employeeId },
+    data: {
+      status: "AVAILABLE",
+      sickUntil: null,
+    },
+  });
+
+  revalidateAll();
+}
+
 // --- Fahrzeuge ---
 
 export async function createVehicle(formData: FormData) {
+  await requireAdmin();
   const photo = formData.get("photo");
 
   const vehicle = await prisma.vehicle.create({
@@ -136,6 +182,7 @@ export async function createVehicle(formData: FormData) {
 }
 
 export async function updateVehicle(id: string, formData: FormData) {
+  await requireAdmin();
   const existing = await prisma.vehicle.findUnique({ where: { id } });
   if (!existing) return;
 
@@ -168,6 +215,7 @@ export async function updateVehicle(id: string, formData: FormData) {
 }
 
 export async function deleteVehicle(id: string) {
+  await requireAdmin();
   const vehicle = await prisma.vehicle.findUnique({ where: { id } });
   if (vehicle?.photoUrl) {
     await deleteVehiclePhoto(vehicle.photoUrl);
@@ -179,6 +227,7 @@ export async function deleteVehicle(id: string) {
 // --- Baustellen ---
 
 export async function createSite(formData: FormData) {
+  await requireAdmin();
   await prisma.constructionSite.create({
     data: {
       name: formData.get("name") as string,
@@ -196,6 +245,7 @@ export async function createSite(formData: FormData) {
 }
 
 export async function updateSite(id: string, formData: FormData) {
+  await requireAdmin();
   await prisma.constructionSite.update({
     where: { id },
     data: {
@@ -214,6 +264,7 @@ export async function updateSite(id: string, formData: FormData) {
 }
 
 export async function deleteSite(id: string) {
+  await requireAdmin();
   await prisma.constructionSite.delete({ where: { id } });
   revalidateAll();
 }
@@ -244,7 +295,46 @@ async function assertNoEmployeeOverlap(
   }
 }
 
+async function assertNoVehicleOverlap(
+  vehicleId: string,
+  date: Date,
+  startMinutes: number,
+  endMinutes: number,
+  excludeId?: string
+) {
+  const existing = await prisma.assignment.findMany({
+    where: {
+      vehicleId,
+      date,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+  });
+
+  const conflict = existing.find((a) =>
+    rangesOverlap(a.startMinutes, a.endMinutes, startMinutes, endMinutes)
+  );
+
+  if (conflict) {
+    throw new Error("Das Fahrzeug ist in diesem Zeitraum bereits eingeteilt.");
+  }
+}
+
+async function syncVehicleStatus(vehicleId: string) {
+  const count = await prisma.assignment.count({
+    where: {
+      vehicleId,
+      date: { gte: startOfDay(new Date()) },
+    },
+  });
+
+  await prisma.vehicle.update({
+    where: { id: vehicleId },
+    data: { status: count > 0 ? "IN_USE" : "AVAILABLE" },
+  });
+}
+
 export async function createAssignment(formData: FormData) {
+  await requireAdmin();
   const employeeId = (formData.get("employeeId") as string) || null;
   const vehicleId = (formData.get("vehicleId") as string) || null;
   const siteId = formData.get("siteId") as string;
@@ -309,7 +399,9 @@ export async function createDragAssignment(data: {
   date: string;
   startMinutes: number;
   endMinutes: number;
+  vehicleId?: string | null;
 }) {
+  await requireAdmin();
   const date = startOfDay(new Date(data.date));
   const { startMinutes, endMinutes } = normalizeRange(
     data.startMinutes,
@@ -318,11 +410,21 @@ export async function createDragAssignment(data: {
 
   await assertNoEmployeeOverlap(data.employeeId, date, startMinutes, endMinutes);
 
+  if (data.vehicleId) {
+    await assertNoVehicleOverlap(
+      data.vehicleId,
+      date,
+      startMinutes,
+      endMinutes
+    );
+  }
+
   await prisma.assignment.create({
     data: {
       siteId: data.siteId,
       date,
       employeeId: data.employeeId,
+      vehicleId: data.vehicleId || undefined,
       startMinutes,
       endMinutes,
     },
@@ -333,6 +435,47 @@ export async function createDragAssignment(data: {
     data: { status: "ASSIGNED" },
   });
 
+  if (data.vehicleId) {
+    await syncVehicleStatus(data.vehicleId);
+  }
+
+  revalidateAll();
+}
+
+export async function assignVehicleToAssignment(
+  assignmentId: string,
+  vehicleId: string
+) {
+  await requireAdmin();
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+  });
+
+  if (!assignment) {
+    throw new Error("Zuweisung nicht gefunden.");
+  }
+
+  await assertNoVehicleOverlap(
+    vehicleId,
+    assignment.date,
+    assignment.startMinutes,
+    assignment.endMinutes,
+    assignment.id
+  );
+
+  const previousVehicleId = assignment.vehicleId;
+
+  await prisma.assignment.update({
+    where: { id: assignmentId },
+    data: { vehicleId },
+  });
+
+  await syncVehicleStatus(vehicleId);
+
+  if (previousVehicleId && previousVehicleId !== vehicleId) {
+    await syncVehicleStatus(previousVehicleId);
+  }
+
   revalidateAll();
 }
 
@@ -341,6 +484,7 @@ export async function updateAssignmentSchedule(data: {
   startMinutes?: number;
   endMinutes?: number;
 }) {
+  await requireAdmin();
   const assignment = await prisma.assignment.findUnique({
     where: { id: data.id },
   });
@@ -373,6 +517,7 @@ export async function updateAssignmentSchedule(data: {
 }
 
 export async function deleteAssignment(id: string) {
+  await requireAdmin();
   const assignment = await prisma.assignment.findUnique({
     where: { id },
     include: { employee: true, vehicle: true },

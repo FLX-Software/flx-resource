@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { Assignment, ConstructionSite, Employee } from "@prisma/client";
+import { useEffect, useRef, useState, useTransition } from "react";
+import type { Assignment, ConstructionSite, Employee, Vehicle } from "@prisma/client";
 import {
   formatTimeRange,
   MIN_ASSIGNMENT_MINUTES,
@@ -9,28 +9,36 @@ import {
   snapMinutes,
   timelinePercent,
 } from "@/lib/planning-time";
-import { updateAssignmentSchedule } from "@/lib/actions";
+import { assignVehicleToAssignment, updateAssignmentSchedule } from "@/lib/actions";
+import { DRAG_VEHICLE_TYPE } from "@/components/planning/planning-constants";
 import { cn } from "@/lib/utils";
 
 type AssignmentBar = Assignment & {
   employee: Employee | null;
+  vehicle: Vehicle | null;
   site: ConstructionSite;
 };
 
 interface TimelineAssignmentBarProps {
   assignment: AssignmentBar;
   getTimelineRect: () => DOMRect | null;
+  compact?: boolean;
+  readOnly?: boolean;
 }
 
 export function TimelineAssignmentBar({
   assignment,
   getTimelineRect,
+  compact = false,
+  readOnly = false,
 }: TimelineAssignmentBarProps) {
   const [preview, setPreview] = useState({
     start: assignment.startMinutes,
     end: assignment.endMinutes,
   });
   const [dragMode, setDragMode] = useState<"start" | "end" | "move" | null>(null);
+  const [vehicleDragOver, setVehicleDragOver] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const dragRef = useRef({
     startX: 0,
     startMinutes: 0,
@@ -47,7 +55,7 @@ export function TimelineAssignmentBar({
   }, [assignment.startMinutes, assignment.endMinutes]);
 
   useEffect(() => {
-    if (!dragMode) return;
+    if (!dragMode || readOnly) return;
 
     function onMove(e: PointerEvent) {
       const rect = getTimelineRect();
@@ -108,9 +116,10 @@ export function TimelineAssignmentBar({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [dragMode, assignment, getTimelineRect]);
+  }, [dragMode, assignment, getTimelineRect, readOnly]);
 
   function startDrag(mode: "start" | "end" | "move", e: React.PointerEvent) {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     dragRef.current = {
@@ -121,37 +130,86 @@ export function TimelineAssignmentBar({
     setDragMode(mode);
   }
 
+  function handleVehicleDrop(e: React.DragEvent) {
+    if (readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setVehicleDragOver(false);
+    const vehicleId = e.dataTransfer.getData(DRAG_VEHICLE_TYPE);
+    if (!vehicleId) return;
+
+    startTransition(async () => {
+      await assignVehicleToAssignment(assignment.id, vehicleId);
+    });
+  }
+
   const { left, width } = timelinePercent(preview.start, preview.end);
   const label = assignment.employee
     ? `${assignment.employee.firstName} ${assignment.employee.lastName}`
     : "Einsatz";
+  const vehicleLabel = assignment.vehicle
+    ? ` · ${assignment.vehicle.name}`
+    : "";
 
   return (
     <div
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes(DRAG_VEHICLE_TYPE)) {
+          e.preventDefault();
+          e.stopPropagation();
+          setVehicleDragOver(true);
+        }
+      }}
+      onDragLeave={readOnly ? undefined : () => setVehicleDragOver(false)}
+      onDrop={readOnly ? undefined : handleVehicleDrop}
       className={cn(
-        "absolute top-1 flex h-10 items-center overflow-hidden rounded-md border border-amber-300 bg-amber-100 text-xs shadow-sm",
-        dragMode && "z-20 ring-2 ring-amber-400"
+        "absolute inset-y-0.5 flex items-center overflow-hidden rounded border shadow-sm",
+        compact ? "text-[10px]" : "text-xs",
+        assignment.vehicle
+          ? "border-flx-blue/60 bg-flx-blue/25"
+          : "border-flx-blue/40 bg-flx-blue/15",
+        dragMode && "z-20 ring-1 ring-inset ring-flx-blue-light",
+        vehicleDragOver && "z-20 ring-1 ring-inset ring-emerald-400",
+        isPending && "opacity-60"
       )}
       style={{ left: `${left}%`, width: `${width}%` }}
-      title={`${label} · ${assignment.site.name} · ${formatTimeRange(preview.start, preview.end)}`}
+      title={`${label}${vehicleLabel} · ${assignment.site.name} · ${formatTimeRange(preview.start, preview.end)}`}
     >
+      {!readOnly && (
+        <div
+          className="w-2 shrink-0 cursor-ew-resize self-stretch bg-flx-blue/50 hover:bg-flx-blue"
+          onPointerDown={(e) => startDrag("start", e)}
+        />
+      )}
       <div
-        className="w-2 shrink-0 cursor-ew-resize self-stretch bg-amber-300/80 hover:bg-amber-400"
-        onPointerDown={(e) => startDrag("start", e)}
-      />
-      <div
-        className="flex min-w-0 flex-1 cursor-grab flex-col justify-center px-2 active:cursor-grabbing"
-        onPointerDown={(e) => startDrag("move", e)}
+        className={cn(
+          "flex min-w-0 flex-1 flex-col justify-center px-1.5",
+          !readOnly && "cursor-grab active:cursor-grabbing"
+        )}
+        onPointerDown={readOnly ? undefined : (e) => startDrag("move", e)}
       >
-        <span className="truncate font-medium text-amber-900">{label}</span>
-        <span className="truncate text-[10px] text-amber-700">
-          {assignment.site.name} · {formatTimeRange(preview.start, preview.end)}
-        </span>
+        {compact ? (
+          <span className="truncate font-medium leading-tight text-white">
+            {assignment.site.name} · {formatTimeRange(preview.start, preview.end)}
+          </span>
+        ) : (
+          <>
+            <span className="truncate font-medium text-white">
+              {label}
+              {vehicleLabel}
+            </span>
+            <span className="truncate text-[10px] leading-tight text-flx-blue-light">
+              {assignment.site.name} · {formatTimeRange(preview.start, preview.end)}
+            </span>
+          </>
+        )}
       </div>
-      <div
-        className="w-2 shrink-0 cursor-ew-resize self-stretch bg-amber-300/80 hover:bg-amber-400"
-        onPointerDown={(e) => startDrag("end", e)}
-      />
+      {!readOnly && (
+        <div
+          className="w-2 shrink-0 cursor-ew-resize self-stretch bg-flx-blue/50 hover:bg-flx-blue"
+          onPointerDown={(e) => startDrag("end", e)}
+        />
+      )}
     </div>
   );
 }

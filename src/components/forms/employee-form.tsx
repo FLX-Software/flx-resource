@@ -111,7 +111,7 @@ export function EmployeeForm({ action, employee, onCancel, onSuccess }: Employee
               </Button>
             )}
           </div>
-          <p className="text-xs text-stone-500">JPG, PNG oder WebP, max. 5 MB</p>
+          <p className="text-xs text-flx-muted">JPG, PNG oder WebP, max. 5 MB</p>
         </div>
       </div>
       <input type="hidden" name="removePhoto" value={removePhoto ? "true" : "false"} />

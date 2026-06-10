@@ -1,4 +1,5 @@
 import { Truck } from "lucide-react";
+import { UploadedImage } from "@/components/shared/uploaded-image";
 import { cn } from "@/lib/utils";
 
 interface VehicleImageProps {
@@ -11,7 +12,7 @@ interface VehicleImageProps {
 const sizeClasses = {
   sm: "h-8 w-8",
   md: "h-12 w-12",
-  lg: "h-16 w-16",
+  lg: "h-20 w-20",
 };
 
 const iconSizes = {
@@ -23,17 +24,17 @@ const iconSizes = {
 export function VehicleImage({
   name,
   photoUrl,
-  size = "md",
+  size = "lg",
   className,
 }: VehicleImageProps) {
-  const sizeClass = sizeClasses[size];
-
   if (photoUrl) {
     return (
-      <img
+      <UploadedImage
         src={photoUrl}
         alt={name}
-        className={cn("rounded-lg object-cover", sizeClass, className)}
+        size={size}
+        rounded="lg"
+        className={className}
       />
     );
   }
@@ -41,8 +42,8 @@ export function VehicleImage({
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-lg bg-blue-50 text-blue-700",
-        sizeClass,
+        "flex shrink-0 items-center justify-center rounded-lg border border-flx-blue/30 bg-flx-blue/10 text-flx-blue-light",
+        sizeClasses[size],
         className
       )}
     >
