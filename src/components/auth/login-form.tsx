@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -18,9 +20,15 @@ export function LoginForm() {
 
     startTransition(async () => {
       try {
-        await login(formData);
+        const result = await login(formData);
+        if (result?.ok) {
+          router.push("/");
+          router.refresh();
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Anmeldung fehlgeschlagen.");
+        setError(
+          err instanceof Error ? err.message : "Anmeldung fehlgeschlagen."
+        );
       }
     });
   }
@@ -32,8 +40,14 @@ export function LoginForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="email">E-Mail</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Label htmlFor="username">Benutzername</Label>
+        <Input
+          id="username"
+          name="username"
+          type="text"
+          autoComplete="username"
+          required
+        />
       </div>
 
       <div className="space-y-2">

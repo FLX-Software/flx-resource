@@ -26,20 +26,23 @@ type SiteWithAssignments = ConstructionSite & {
 
 interface SiteListProps {
   sites: SiteWithAssignments[];
+  isAdmin?: boolean;
 }
 
-export function SiteList({ sites }: SiteListProps) {
+export function SiteList({ sites, isAdmin = false }: SiteListProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ConstructionSite | null>(null);
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-          Baustelle hinzufügen
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />
+            Baustelle hinzufügen
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-4">
         {sites.map((site) => (
@@ -136,42 +139,48 @@ export function SiteList({ sites }: SiteListProps) {
       {sites.length === 0 && (
         <div className="rounded-xl border border-dashed border-flx-border p-12 text-center">
           <p className="text-flx-muted">Noch keine Baustellen erfasst.</p>
-          <Button className="mt-4" onClick={() => setShowCreate(true)}>
-            Erste Baustelle hinzufügen
-          </Button>
+          {isAdmin && (
+            <Button className="mt-4" onClick={() => setShowCreate(true)}>
+              Erste Baustelle hinzufügen
+            </Button>
+          )}
         </div>
       )}
 
-      <Modal
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        title="Neue Baustelle"
-        description="Erfassen Sie eine neue Baustelle."
-      >
-        <SiteForm
-          action={async (formData) => {
-            await createSite(formData);
-            setShowCreate(false);
-          }}
-          onCancel={() => setShowCreate(false)}
-        />
-      </Modal>
+      {isAdmin && (
+        <>
+          <Modal
+            open={showCreate}
+            onOpenChange={setShowCreate}
+            title="Neue Baustelle"
+            description="Erfassen Sie eine neue Baustelle."
+          >
+            <SiteForm
+              action={async (formData) => {
+                await createSite(formData);
+                setShowCreate(false);
+              }}
+              onCancel={() => setShowCreate(false)}
+            />
+          </Modal>
 
-      {editing && (
-        <Modal
-          open={!!editing}
-          onOpenChange={(open) => !open && setEditing(null)}
-          title="Baustelle bearbeiten"
-        >
-          <SiteForm
-            site={editing}
-            action={async (formData) => {
-              await updateSite(editing.id, formData);
-              setEditing(null);
-            }}
-            onCancel={() => setEditing(null)}
-          />
-        </Modal>
+          {editing && (
+            <Modal
+              open={!!editing}
+              onOpenChange={(open) => !open && setEditing(null)}
+              title="Baustelle bearbeiten"
+            >
+              <SiteForm
+                site={editing}
+                action={async (formData) => {
+                  await updateSite(editing.id, formData);
+                  setEditing(null);
+                }}
+                onCancel={() => setEditing(null)}
+              />
+            </Modal>
+          )}
+        </>
       )}
     </>
   );

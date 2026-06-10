@@ -4,7 +4,7 @@ export const SESSION_COOKIE = "flx-session";
 
 export interface SessionUser {
   userId: string;
-  email: string;
+  username: string;
   firstName: string;
   lastName: string;
   role: UserRole;

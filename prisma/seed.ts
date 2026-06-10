@@ -209,10 +209,14 @@ async function main() {
     data: { status: "IN_USE" },
   });
 
+  const adminPassword = "admin1234";
+  const employeePassword = "mitarbeiter1234";
+
   await prisma.user.create({
     data: {
-      email: "planer@fluck-holzbau.ch",
-      passwordHash: await bcrypt.hash("planer1234", 12),
+      username: "admin",
+      passwordHash: await bcrypt.hash(adminPassword, 12),
+      passwordDisplay: adminPassword,
       firstName: "Marco",
       lastName: "Fluck",
       role: "ADMIN",
@@ -221,8 +225,9 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: "thomas.meier@fluck-holzbau.ch",
-      passwordHash: await bcrypt.hash("mitarbeiter1234", 12),
+      username: "t.meier",
+      passwordHash: await bcrypt.hash(employeePassword, 12),
+      passwordDisplay: employeePassword,
       firstName: "Thomas",
       lastName: "Meier",
       role: "EMPLOYEE",
@@ -231,8 +236,8 @@ async function main() {
   });
 
   console.log("Demo-Daten erfolgreich erstellt.");
-  console.log("Planer: planer@fluck-holzbau.ch / planer1234");
-  console.log("Mitarbeiter: thomas.meier@fluck-holzbau.ch / mitarbeiter1234");
+  console.log("Administrator: admin / admin1234");
+  console.log("Mitarbeiter: t.meier / mitarbeiter1234");
 }
 
 main()

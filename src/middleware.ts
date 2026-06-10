@@ -5,7 +5,7 @@ import { SESSION_COOKIE, type SessionUser } from "@/lib/auth-types";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 
-const ADMIN_ONLY_PATHS = ["/mitarbeiter", "/fahrzeuge", "/baustellen"];
+const ADMIN_ONLY_PATHS = ["/administration"];
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -24,7 +24,7 @@ async function getSessionFromRequest(
     const { payload } = await jwtVerify(token, secret);
     return {
       userId: payload.userId as string,
-      email: payload.email as string,
+      username: payload.username as string,
       firstName: payload.firstName as string,
       lastName: payload.lastName as string,
       role: payload.role as SessionUser["role"],
@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
     session.role === "EMPLOYEE" &&
     ADMIN_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   ) {
-    return NextResponse.redirect(new URL("/planung", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

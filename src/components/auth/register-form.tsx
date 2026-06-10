@@ -2,26 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 
-interface RegisterEmployeeOption {
-  id: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
-
-interface RegisterFormProps {
-  employees: RegisterEmployeeOption[];
-  requiresAdminSecret: boolean;
-}
-
-export function RegisterForm({ employees, requiresAdminSecret }: RegisterFormProps) {
-  const [accountType, setAccountType] = useState<"EMPLOYEE" | "ADMIN">("EMPLOYEE");
+export function RegisterForm() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -29,11 +17,14 @@ export function RegisterForm({ employees, requiresAdminSecret }: RegisterFormPro
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
-    formData.set("accountType", accountType);
 
     startTransition(async () => {
       try {
-        await register(formData);
+        const result = await register(formData);
+        if (result?.ok) {
+          router.push("/");
+          router.refresh();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Registrierung fehlgeschlagen.");
       }
@@ -58,8 +49,20 @@ export function RegisterForm({ employees, requiresAdminSecret }: RegisterFormPro
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">E-Mail</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Label htmlFor="username">Benutzername</Label>
+        <Input
+          id="username"
+          name="username"
+          type="text"
+          autoComplete="username"
+          minLength={3}
+          maxLength={32}
+          pattern="[a-zA-Z0-9._-]+"
+          required
+        />
+        <p className="text-xs text-flx-muted">
+          3–32 Zeichen, Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -74,46 +77,6 @@ export function RegisterForm({ employees, requiresAdminSecret }: RegisterFormPro
         />
         <p className="text-xs text-flx-muted">Mindestens 8 Zeichen</p>
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="accountType">Kontotyp</Label>
-        <Select
-          id="accountType"
-          value={accountType}
-          onChange={(e) => setAccountType(e.target.value as "EMPLOYEE" | "ADMIN")}
-        >
-          <option value="EMPLOYEE">Mitarbeiter (nur Einsicht)</option>
-          <option value="ADMIN">Planer / Produktionsleiter (Admin)</option>
-        </Select>
-      </div>
-
-      {accountType === "EMPLOYEE" && (
-        <div className="space-y-2">
-          <Label htmlFor="employeeId">Mitarbeiterprofil</Label>
-          <Select id="employeeId" name="employeeId" required defaultValue="">
-            <option value="" disabled>
-              Profil auswählen...
-            </option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.firstName} {employee.lastName} ({employee.role})
-              </option>
-            ))}
-          </Select>
-          {employees.length === 0 && (
-            <p className="text-xs text-amber-400">
-              Keine freien Mitarbeiterprofile verfügbar. Bitte den Planer kontaktieren.
-            </p>
-          )}
-        </div>
-      )}
-
-      {accountType === "ADMIN" && requiresAdminSecret && (
-        <div className="space-y-2">
-          <Label htmlFor="adminSecret">Planer-Registrierungscode</Label>
-          <Input id="adminSecret" name="adminSecret" required />
-        </div>
-      )}
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? "Registrieren..." : "Konto erstellen"}

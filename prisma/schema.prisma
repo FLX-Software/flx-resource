@@ -35,16 +35,17 @@ enum UserRole {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  role         UserRole @default(EMPLOYEE)
-  employeeId   String?  @unique
-  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  username        String   @unique
+  passwordHash    String
+  passwordDisplay String
+  firstName       String
+  lastName        String
+  role            UserRole @default(EMPLOYEE)
+  employeeId      String?  @unique
+  employee        Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Employee {

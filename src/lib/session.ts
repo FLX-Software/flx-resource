@@ -43,7 +43,7 @@ export async function getSession(): Promise<SessionUser | null> {
     const { payload } = await jwtVerify(token, getSecret());
     return {
       userId: payload.userId as string,
-      email: payload.email as string,
+      username: payload.username as string,
       firstName: payload.firstName as string,
       lastName: payload.lastName as string,
       role: payload.role as SessionUser["role"],

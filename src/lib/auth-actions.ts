@@ -2,119 +2,84 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
+import {
+  normalizeUsername,
+  validatePassword,
+  validateUsername,
+} from "./auth-helpers";
 import { hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
 
 export async function login(formData: FormData) {
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const username = normalizeUsername(formData.get("username") as string);
   const password = formData.get("password") as string;
 
-  if (!email || !password) {
-    throw new Error("E-Mail und Passwort sind erforderlich.");
+  if (!username || !password) {
+    throw new Error("Benutzername und Passwort sind erforderlich.");
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { username } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    throw new Error("E-Mail oder Passwort ist ungültig.");
+    throw new Error("Benutzername oder Passwort ist ungültig.");
   }
 
   await createSession({
     userId: user.id,
-    email: user.email,
+    username: user.username,
     firstName: user.firstName,
     lastName: user.lastName,
     role: user.role,
     employeeId: user.employeeId,
   });
 
-  redirect("/");
+  return { ok: true as const };
 }
 
 export async function register(formData: FormData) {
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const username = normalizeUsername(formData.get("username") as string);
   const password = formData.get("password") as string;
   const firstName = (formData.get("firstName") as string)?.trim();
   const lastName = (formData.get("lastName") as string)?.trim();
-  const accountType = formData.get("accountType") as string;
-  const employeeId = (formData.get("employeeId") as string) || null;
-  const adminSecret = (formData.get("adminSecret") as string) || "";
 
-  if (!email || !password || !firstName || !lastName) {
+  if (!username || !password || !firstName || !lastName) {
     throw new Error("Bitte alle Pflichtfelder ausfüllen.");
   }
 
-  if (password.length < 8) {
-    throw new Error("Das Passwort muss mindestens 8 Zeichen lang sein.");
-  }
+  const usernameError = validateUsername(username);
+  if (usernameError) throw new Error(usernameError);
 
-  const role = accountType === "ADMIN" ? "ADMIN" : "EMPLOYEE";
+  const passwordError = validatePassword(password);
+  if (passwordError) throw new Error(passwordError);
 
-  if (role === "ADMIN") {
-    const requiredSecret = process.env.ADMIN_REGISTRATION_SECRET;
-    if (requiredSecret && adminSecret !== requiredSecret) {
-      throw new Error("Ungültiger Planer-Registrierungscode.");
-    }
-  }
-
-  if (role === "EMPLOYEE" && !employeeId) {
-    throw new Error("Bitte Ihr Mitarbeiterprofil auswählen.");
-  }
-
-  if (role === "EMPLOYEE") {
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId! },
-      include: { user: true },
-    });
-    if (!employee) {
-      throw new Error("Mitarbeiterprofil nicht gefunden.");
-    }
-    if (employee.user) {
-      throw new Error("Für dieses Mitarbeiterprofil existiert bereits ein Konto.");
-    }
-  }
-
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({ where: { username } });
   if (existing) {
-    throw new Error("Diese E-Mail-Adresse ist bereits registriert.");
+    throw new Error("Dieser Benutzername ist bereits vergeben.");
   }
 
   const user = await prisma.user.create({
     data: {
-      email,
+      username,
       passwordHash: await hashPassword(password),
+      passwordDisplay: password,
       firstName,
       lastName,
-      role,
-      employeeId: role === "EMPLOYEE" ? employeeId : null,
+      role: "EMPLOYEE",
     },
   });
 
   await createSession({
     userId: user.id,
-    email: user.email,
+    username: user.username,
     firstName: user.firstName,
     lastName: user.lastName,
     role: user.role,
     employeeId: user.employeeId,
   });
 
-  redirect("/");
+  return { ok: true as const };
 }
 
 export async function logout() {
   await destroySession();
   redirect("/login");
-}
-
-export async function getUnlinkedEmployees() {
-  return prisma.employee.findMany({
-    where: { user: null },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-    },
-  });
 }

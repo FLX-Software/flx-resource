@@ -29,9 +29,10 @@ type EmployeeWithAssignments = Employee & {
 
 interface EmployeeListProps {
   employees: EmployeeWithAssignments[];
+  isAdmin?: boolean;
 }
 
-export function EmployeeList({ employees }: EmployeeListProps) {
+export function EmployeeList({ employees, isAdmin = false }: EmployeeListProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [sickLeaveEmployee, setSickLeaveEmployee] = useState<Employee | null>(null);
@@ -39,12 +40,14 @@ export function EmployeeList({ employees }: EmployeeListProps) {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-          Mitarbeiter hinzufügen
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />
+            Mitarbeiter hinzufügen
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {employees.map((employee) => (
@@ -96,42 +99,44 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                 </div>
               )}
 
-              <div className="flex flex-wrap justify-end gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSickLeaveEmployee(employee)}
-                >
-                  <Thermometer className="h-4 w-4" />
-                  Krankmeldung
-                </Button>
-                {employee.status === "SICK" && (
+              {isAdmin && (
+                <div className="flex flex-wrap justify-end gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSickLeaveEmployee(employee)}
+                  >
+                    <Thermometer className="h-4 w-4" />
+                    Krankmeldung
+                  </Button>
+                  {employee.status === "SICK" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-emerald-400 hover:text-emerald-300"
+                      disabled={isEndingSick}
+                      onClick={() =>
+                        startEndSick(async () => {
+                          await endEmployeeSickLeave(employee.id);
+                        })
+                      }
+                    >
+                      Gesund melden
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-emerald-400 hover:text-emerald-300"
-                    disabled={isEndingSick}
-                    onClick={() =>
-                      startEndSick(async () => {
-                        await endEmployeeSickLeave(employee.id);
-                      })
-                    }
+                    onClick={() => setEditing(employee)}
                   >
-                    Gesund melden
+                    <Pencil className="h-4 w-4" />
                   </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditing(employee)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <DeleteButton
-                  action={deleteEmployee.bind(null, employee.id)}
-                  label="Mitarbeiter löschen"
-                />
-              </div>
+                  <DeleteButton
+                    action={deleteEmployee.bind(null, employee.id)}
+                    label="Mitarbeiter löschen"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -140,54 +145,60 @@ export function EmployeeList({ employees }: EmployeeListProps) {
       {employees.length === 0 && (
         <div className="rounded-xl border border-dashed border-flx-border p-12 text-center">
           <p className="text-flx-muted">Noch keine Mitarbeiter erfasst.</p>
-          <Button className="mt-4" onClick={() => setShowCreate(true)}>
-            Ersten Mitarbeiter hinzufügen
-          </Button>
+          {isAdmin && (
+            <Button className="mt-4" onClick={() => setShowCreate(true)}>
+              Ersten Mitarbeiter hinzufügen
+            </Button>
+          )}
         </div>
       )}
 
-      <Modal
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        title="Neuer Mitarbeiter"
-        description="Erfassen Sie einen neuen Mitarbeiter."
-      >
-        <EmployeeForm
-          action={createEmployee}
-          onSuccess={() => setShowCreate(false)}
-          onCancel={() => setShowCreate(false)}
-        />
-      </Modal>
+      {isAdmin && (
+        <>
+          <Modal
+            open={showCreate}
+            onOpenChange={setShowCreate}
+            title="Neuer Mitarbeiter"
+            description="Erfassen Sie einen neuen Mitarbeiter."
+          >
+            <EmployeeForm
+              action={createEmployee}
+              onSuccess={() => setShowCreate(false)}
+              onCancel={() => setShowCreate(false)}
+            />
+          </Modal>
 
-      {editing && (
-        <Modal
-          open={!!editing}
-          onOpenChange={(open) => !open && setEditing(null)}
-          title="Mitarbeiter bearbeiten"
-        >
-          <EmployeeForm
-            employee={editing}
-            action={updateEmployee.bind(null, editing.id)}
-            onSuccess={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
-          />
-        </Modal>
-      )}
+          {editing && (
+            <Modal
+              open={!!editing}
+              onOpenChange={(open) => !open && setEditing(null)}
+              title="Mitarbeiter bearbeiten"
+            >
+              <EmployeeForm
+                employee={editing}
+                action={updateEmployee.bind(null, editing.id)}
+                onSuccess={() => setEditing(null)}
+                onCancel={() => setEditing(null)}
+              />
+            </Modal>
+          )}
 
-      {sickLeaveEmployee && (
-        <Modal
-          open={!!sickLeaveEmployee}
-          onOpenChange={(open) => !open && setSickLeaveEmployee(null)}
-          title="Krankmeldung"
-          description="Tragen Sie ein, bis wann die Person krankgemeldet ist."
-        >
-          <SickLeaveForm
-            employee={sickLeaveEmployee}
-            action={reportEmployeeSickLeave.bind(null, sickLeaveEmployee.id)}
-            onSuccess={() => setSickLeaveEmployee(null)}
-            onCancel={() => setSickLeaveEmployee(null)}
-          />
-        </Modal>
+          {sickLeaveEmployee && (
+            <Modal
+              open={!!sickLeaveEmployee}
+              onOpenChange={(open) => !open && setSickLeaveEmployee(null)}
+              title="Krankmeldung"
+              description="Tragen Sie ein, bis wann die Person krankgemeldet ist."
+            >
+              <SickLeaveForm
+                employee={sickLeaveEmployee}
+                action={reportEmployeeSickLeave.bind(null, sickLeaveEmployee.id)}
+                onSuccess={() => setSickLeaveEmployee(null)}
+                onCancel={() => setSickLeaveEmployee(null)}
+              />
+            </Modal>
+          )}
+        </>
       )}
     </>
   );

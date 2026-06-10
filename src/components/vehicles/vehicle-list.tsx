@@ -23,20 +23,23 @@ type VehicleWithAssignments = Vehicle & {
 
 interface VehicleListProps {
   vehicles: VehicleWithAssignments[];
+  isAdmin?: boolean;
 }
 
-export function VehicleList({ vehicles }: VehicleListProps) {
+export function VehicleList({ vehicles, isAdmin = false }: VehicleListProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Vehicle | null>(null);
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-          Fahrzeug hinzufügen
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />
+            Fahrzeug hinzufügen
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {vehicles.map((vehicle) => (
@@ -71,19 +74,21 @@ export function VehicleList({ vehicles }: VehicleListProps) {
                 </div>
               )}
 
-              <div className="flex justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditing(vehicle)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <DeleteButton
-                  action={deleteVehicle.bind(null, vehicle.id)}
-                  label="Fahrzeug löschen"
-                />
-              </div>
+              {isAdmin && (
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditing(vehicle)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <DeleteButton
+                    action={deleteVehicle.bind(null, vehicle.id)}
+                    label="Fahrzeug löschen"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -92,38 +97,44 @@ export function VehicleList({ vehicles }: VehicleListProps) {
       {vehicles.length === 0 && (
         <div className="rounded-xl border border-dashed border-flx-border p-12 text-center">
           <p className="text-flx-muted">Noch keine Fahrzeuge erfasst.</p>
-          <Button className="mt-4" onClick={() => setShowCreate(true)}>
-            Erstes Fahrzeug hinzufügen
-          </Button>
+          {isAdmin && (
+            <Button className="mt-4" onClick={() => setShowCreate(true)}>
+              Erstes Fahrzeug hinzufügen
+            </Button>
+          )}
         </div>
       )}
 
-      <Modal
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        title="Neues Fahrzeug"
-        description="Erfassen Sie ein neues Fahrzeug."
-      >
-        <VehicleForm
-          action={createVehicle}
-          onSuccess={() => setShowCreate(false)}
-          onCancel={() => setShowCreate(false)}
-        />
-      </Modal>
+      {isAdmin && (
+        <>
+          <Modal
+            open={showCreate}
+            onOpenChange={setShowCreate}
+            title="Neues Fahrzeug"
+            description="Erfassen Sie ein neues Fahrzeug."
+          >
+            <VehicleForm
+              action={createVehicle}
+              onSuccess={() => setShowCreate(false)}
+              onCancel={() => setShowCreate(false)}
+            />
+          </Modal>
 
-      {editing && (
-        <Modal
-          open={!!editing}
-          onOpenChange={(open) => !open && setEditing(null)}
-          title="Fahrzeug bearbeiten"
-        >
-          <VehicleForm
-            vehicle={editing}
-            action={updateVehicle.bind(null, editing.id)}
-            onSuccess={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
-          />
-        </Modal>
+          {editing && (
+            <Modal
+              open={!!editing}
+              onOpenChange={(open) => !open && setEditing(null)}
+              title="Fahrzeug bearbeiten"
+            >
+              <VehicleForm
+                vehicle={editing}
+                action={updateVehicle.bind(null, editing.id)}
+                onSuccess={() => setEditing(null)}
+                onCancel={() => setEditing(null)}
+              />
+            </Modal>
+          )}
+        </>
       )}
     </>
   );
