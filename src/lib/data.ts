@@ -125,7 +125,16 @@ export async function getAssignmentsForWeek(date = new Date()) {
       vehicle: true,
       site: true,
     },
-    orderBy: { date: "asc" },
+    orderBy: [{ date: "asc" }, { startMinutes: "asc" }],
+  });
+}
+
+export async function getPlanningEmployees() {
+  return prisma.employee.findMany({
+    where: {
+      status: { notIn: ["VACATION", "SICK", "UNAVAILABLE"] },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 }
 

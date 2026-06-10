@@ -1,26 +1,36 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { PlanningBoard } from "@/components/planning/planning-board";
-import { getAvailableResources, getAssignmentsForWeek } from "@/lib/data";
+import {
+  getAssignmentsForWeek,
+  getAvailableResources,
+  getPlanningEmployees,
+} from "@/lib/data";
 
-export default async function PlanungPage() {
-  const today = new Date();
-  const [resources, assignments] = await Promise.all([
-    getAvailableResources(today),
-    getAssignmentsForWeek(today),
+interface PlanungPageProps {
+  searchParams: Promise<{ week?: string }>;
+}
+
+export default async function PlanungPage({ searchParams }: PlanungPageProps) {
+  const params = await searchParams;
+  const weekDate = params.week ? new Date(params.week) : new Date();
+  const [employees, resources, assignments] = await Promise.all([
+    getPlanningEmployees(),
+    getAvailableResources(weekDate),
+    getAssignmentsForWeek(weekDate),
   ]);
 
   return (
     <div>
       <PageHeader
         title="Planung"
-        description="Weisen Sie Mitarbeiter und Fahrzeuge Baustellen zu."
+        description="Wochenplan mit Drag & Drop und stundenweiser Tagesplanung."
       />
       <PlanningBoard
-        employees={resources.employees}
+        employees={employees}
         vehicles={resources.vehicles}
         sites={resources.sites}
         assignments={assignments}
-        defaultDate={today}
+        defaultDate={weekDate}
       />
     </div>
   );

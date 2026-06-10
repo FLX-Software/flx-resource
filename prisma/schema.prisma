@@ -38,6 +38,7 @@ model Employee {
   email     String?
   status    EmployeeStatus @default(AVAILABLE)
   skills    String?
+  photoUrl  String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   assignments Assignment[]
@@ -49,6 +50,7 @@ model Vehicle {
   licensePlate String
   type         String
   capacity     String?
+  photoUrl     String?
   status       VehicleStatus @default(AVAILABLE)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -70,9 +72,11 @@ model ConstructionSite {
 }
 
 model Assignment {
-  id        String   @id @default(cuid())
-  date      DateTime
-  notes     String?
+  id           String   @id @default(cuid())
+  date         DateTime
+  startMinutes Int      @default(480)
+  endMinutes   Int      @default(1020)
+  notes        String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -154,12 +154,16 @@ async function main() {
         employeeId: employees[1].id,
         vehicleId: vehicles[0].id,
         date: today,
+        startMinutes: 480,
+        endMinutes: 1020,
         notes: "Montage OG",
       },
       {
         siteId: sites[0].id,
         employeeId: employees[2].id,
         date: today,
+        startMinutes: 600,
+        endMinutes: 720,
         notes: "Fassadenarbeiten",
       },
       {
@@ -167,6 +171,8 @@ async function main() {
         employeeId: employees[3].id,
         vehicleId: vehicles[1].id,
         date: today,
+        startMinutes: 480,
+        endMinutes: 960,
         notes: "Kranarbeiten Dach",
       },
       {
@@ -174,6 +180,8 @@ async function main() {
         employeeId: employees[1].id,
         vehicleId: vehicles[0].id,
         date: addDays(today, 1),
+        startMinutes: 480,
+        endMinutes: 1020,
       },
     ],
   });

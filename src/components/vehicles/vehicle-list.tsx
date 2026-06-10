@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Truck } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
+import { VehicleImage } from "@/components/vehicles/vehicle-image";
 import type { Vehicle, Assignment, ConstructionSite } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,9 +44,7 @@ export function VehicleList({ vehicles }: VehicleListProps) {
             <CardContent className="p-5">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                    <Truck className="h-6 w-6" />
-                  </div>
+                  <VehicleImage name={vehicle.name} photoUrl={vehicle.photoUrl} />
                   <div>
                     <p className="font-semibold text-stone-900">{vehicle.name}</p>
                     <p className="text-sm text-stone-500">{vehicle.licensePlate}</p>
@@ -106,10 +105,8 @@ export function VehicleList({ vehicles }: VehicleListProps) {
         description="Erfassen Sie ein neues Fahrzeug."
       >
         <VehicleForm
-          action={async (formData) => {
-            await createVehicle(formData);
-            setShowCreate(false);
-          }}
+          action={createVehicle}
+          onSuccess={() => setShowCreate(false)}
           onCancel={() => setShowCreate(false)}
         />
       </Modal>
@@ -122,10 +119,8 @@ export function VehicleList({ vehicles }: VehicleListProps) {
         >
           <VehicleForm
             vehicle={editing}
-            action={async (formData) => {
-              await updateVehicle(editing.id, formData);
-              setEditing(null);
-            }}
+            action={updateVehicle.bind(null, editing.id)}
+            onSuccess={() => setEditing(null)}
             onCancel={() => setEditing(null)}
           />
         </Modal>

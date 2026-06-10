@@ -15,7 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { getDashboardStats } from "@/lib/data";
-import { getInitials } from "@/lib/utils";
+import { EmployeeAvatar } from "@/components/employees/employee-avatar";
+import { formatTimeRange } from "@/lib/planning-time";
 
 export default async function DashboardPage() {
   const stats = await getDashboardStats();
@@ -138,6 +139,7 @@ export default async function DashboardPage() {
                     <th className="pb-3 pr-4 font-medium">Baustelle</th>
                     <th className="pb-3 pr-4 font-medium">Mitarbeiter</th>
                     <th className="pb-3 pr-4 font-medium">Fahrzeug</th>
+                    <th className="pb-3 pr-4 font-medium">Zeit</th>
                     <th className="pb-3 font-medium">Notizen</th>
                   </tr>
                 </thead>
@@ -151,12 +153,12 @@ export default async function DashboardPage() {
                       <td className="py-3 pr-4">
                         {assignment.employee ? (
                           <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-800">
-                              {getInitials(
-                                assignment.employee.firstName,
-                                assignment.employee.lastName
-                              )}
-                            </div>
+                            <EmployeeAvatar
+                              firstName={assignment.employee.firstName}
+                              lastName={assignment.employee.lastName}
+                              photoUrl={assignment.employee.photoUrl}
+                              size="sm"
+                            />
                             <span>
                               {assignment.employee.firstName}{" "}
                               {assignment.employee.lastName}
@@ -177,6 +179,9 @@ export default async function DashboardPage() {
                         ) : (
                           <span className="text-stone-400">–</span>
                         )}
+                      </td>
+                      <td className="py-3 pr-4 text-stone-500">
+                        {formatTimeRange(assignment.startMinutes, assignment.endMinutes)}
                       </td>
                       <td className="py-3 text-stone-500">
                         {assignment.notes || "–"}
@@ -203,9 +208,13 @@ export default async function DashboardPage() {
                   className="flex items-center justify-between rounded-lg border border-stone-100 p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-100 text-xs font-semibold text-stone-700">
-                      {getInitials(employee.firstName, employee.lastName)}
-                    </div>
+                    <EmployeeAvatar
+                      firstName={employee.firstName}
+                      lastName={employee.lastName}
+                      photoUrl={employee.photoUrl}
+                      size="sm"
+                      className="bg-stone-100 text-stone-700"
+                    />
                     <div>
                       <p className="text-sm font-medium">
                         {employee.firstName} {employee.lastName}

@@ -14,7 +14,9 @@ import {
   updateEmployee,
   deleteEmployee,
 } from "@/lib/actions";
-import { formatDate, getInitials } from "@/lib/utils";
+import { EmployeeAvatar } from "@/components/employees/employee-avatar";
+import { formatTimeRange } from "@/lib/planning-time";
+import { formatDate } from "@/lib/utils";
 
 type EmployeeWithAssignments = Employee & {
   assignments: (Assignment & { site: ConstructionSite })[];
@@ -43,9 +45,11 @@ export function EmployeeList({ employees }: EmployeeListProps) {
             <CardContent className="p-5">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-800">
-                    {getInitials(employee.firstName, employee.lastName)}
-                  </div>
+                  <EmployeeAvatar
+                    firstName={employee.firstName}
+                    lastName={employee.lastName}
+                    photoUrl={employee.photoUrl}
+                  />
                   <div>
                     <p className="font-semibold text-stone-900">
                       {employee.firstName} {employee.lastName}
@@ -71,7 +75,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                   </p>
                   {employee.assignments.map((a) => (
                     <p key={a.id} className="text-xs text-stone-600">
-                      {formatDate(a.date)} – {a.site.name}
+                      {formatDate(a.date)} · {formatTimeRange(a.startMinutes, a.endMinutes)} – {a.site.name}
                     </p>
                   ))}
                 </div>
@@ -111,10 +115,8 @@ export function EmployeeList({ employees }: EmployeeListProps) {
         description="Erfassen Sie einen neuen Mitarbeiter."
       >
         <EmployeeForm
-          action={async (formData) => {
-            await createEmployee(formData);
-            setShowCreate(false);
-          }}
+          action={createEmployee}
+          onSuccess={() => setShowCreate(false)}
           onCancel={() => setShowCreate(false)}
         />
       </Modal>
@@ -127,10 +129,8 @@ export function EmployeeList({ employees }: EmployeeListProps) {
         >
           <EmployeeForm
             employee={editing}
-            action={async (formData) => {
-              await updateEmployee(editing.id, formData);
-              setEditing(null);
-            }}
+            action={updateEmployee.bind(null, editing.id)}
+            onSuccess={() => setEditing(null)}
             onCancel={() => setEditing(null)}
           />
         </Modal>

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ConstructionSite, Employee, Vehicle } from "@prisma/client";
+import { minutesToTime } from "@/lib/planning-time";
 
 interface AssignmentFormProps {
   action: (formData: FormData) => Promise<void>;
@@ -34,6 +35,28 @@ export function AssignmentForm({
           defaultValue={format(defaultDate, "yyyy-MM-dd")}
           required
         />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="startTime">Von</Label>
+          <Input
+            id="startTime"
+            name="startTime"
+            type="time"
+            defaultValue={minutesToTime(480)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="endTime">Bis</Label>
+          <Input
+            id="endTime"
+            name="endTime"
+            type="time"
+            defaultValue={minutesToTime(1020)}
+            required
+          />
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="siteId">Baustelle</Label>
